@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Mustafa Arslan — Researcher &amp; Writer</title>
+    <link>https://mustafarslan.github.io</link>
+    <description>Ideas, notes, and shorter-form writing.</description>
+    <language>en</language>
+    <lastBuildDate>Tue, 11 Aug 2026 08:02:30 GMT</lastBuildDate>
+    <atom:link href="https://mustafarslan.github.io/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Hello, world</title>
+      <link>https://mustafarslan.github.io/blog/hello-world</link>
+      <guid isPermaLink="true">https://mustafarslan.github.io/blog/hello-world</guid>
+      <pubDate>Sat, 01 Aug 2026 00:00:00 GMT</pubDate>
+      <description>A short welcome post and a note on what this site is for.</description>
+      <content:encoded><![CDATA[<p>This is my personal corner of the internet. I built it to have a single place where I
+can share ideas, publish academic work, and keep notes from conferences and workshops.</p>
+<h2 id="what-i-plan-to-write-about"><a class="heading-anchor" href="#what-i-plan-to-write-about" aria-hidden="true">#</a> What I plan to write about</h2>
+<ul>
+<li><strong>Research problems</strong> I am thinking about
+<ul>
+<li>Memory systems for agentic AI</li>
+<li>Neuro-symbolic representations</li>
+</ul>
+</li>
+<li><strong>Draft ideas</strong> that are not yet papers</li>
+<li><strong>Notes and summaries</strong> from talks and events</li>
+<li><strong>Tools and workflows</strong> I find useful</li>
+</ul>
+<h2 id="how-the-site-is-organised"><a class="heading-anchor" href="#how-the-site-is-organised" aria-hidden="true">#</a> How the site is organised</h2>
+<ol>
+<li><code>\about</code> — who I am, plus upcoming events</li>
+<li><code>\blog</code> — short and long form writing</li>
+<li><code>\papers</code> — published and preprint work</li>
+<li><code>\events</code> — conferences and workshops</li>
+<li><code>\cv</code> — experience timeline and a downloadable PDF</li>
+</ol>
+<h2 id="a-quick-reference"><a class="heading-anchor" href="#a-quick-reference" aria-hidden="true">#</a> A quick reference</h2>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Section</th>
+<th>Updated</th>
+<th>Subscribe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Blog</td>
+<td>Often</td>
+<td><a href="/rss.xml">RSS</a></td>
+</tr>
+<tr>
+<td>Papers</td>
+<td>When published</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>Before each event</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div><blockquote>
+<p>Writing is thinking. Publishing it is how the thinking gets corrected.</p>
+</blockquote>
+<p>Everything here is a plain Markdown file, so a new post is just a new file:</p>
+<pre><code class="language-bash">touch content/blog/my-new-post.md
+</code></pre>
+<p>If something here resonates with you, feel free to reach out.</p>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>

@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Mustafa Arslan — Papers</title>
+    <link>https://mustafarslan.github.io</link>
+    <description>Academic papers and preprints.</description>
+    <language>en</language>
+    <lastBuildDate>Tue, 11 Aug 2026 08:02:30 GMT</lastBuildDate>
+    <atom:link href="https://mustafarslan.github.io/rss/papers.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Aeon: High-Performance Neuro-Symbolic Memory Management for Long-Horizon LLM Agents</title>
+      <link>https://mustafarslan.github.io/papers/aeon-neuro-symbolic-memory</link>
+      <guid isPermaLink="true">https://mustafarslan.github.io/papers/aeon-neuro-symbolic-memory</guid>
+      <pubDate>Tue, 20 Jan 2026 00:00:00 GMT</pubDate>
+      <description>Aeon is a neuro-symbolic Cognitive Operating System that treats LLM agent memory as a managed OS resource: a SIMD-accelerated clustered vector index, an episodic graph, INT8 quantization, a decoupled write-ahead log, and a semantic lookaside buffer delivering sub-5µs retrieval.</description>
+      <content:encoded><![CDATA[<h2 id="abstract"><a class="heading-anchor" href="#abstract" aria-hidden="true">#</a> Abstract</h2>
+<p>Large Language Models (LLMs) are fundamentally constrained by the quadratic computational cost of self-attention and the “Lost in the Middle” phenomenon, where reasoning capabilities degrade as context windows expand. Existing solutions — primarily “Flat RAG” architectures relying on vector databases — treat memory as an unstructured bag of embeddings, failing to capture the hierarchical and temporal structure of long-horizon interactions.</p>
+<p>This paper presents <strong>Aeon</strong>, a Neuro-Symbolic Cognitive Operating System that redefines memory as a managed OS resource. Aeon structures memory into a <strong>Memory Palace</strong> (a spatial index implemented via <strong>Atlas</strong>, a SIMD-accelerated clustered vector index) and a <strong>Trace</strong> (a neuro-symbolic episodic graph). The architecture introduces three advances:</p>
+<ol>
+<li><strong>Symmetric INT8 scalar quantization</strong>, achieving 3.1× spatial compression and 5.6× math acceleration via NEON SDOT intrinsics.</li>
+<li>A decoupled <strong>Write-Ahead Log (WAL)</strong> ensuring crash-recoverability with statistically negligible overhead (&lt; 1%).</li>
+<li>A <strong>Sidecar Blob Arena</strong> eliminating the prior 440-character text ceiling via an append-only, mmap-backed blob file with generational garbage collection.</li>
+</ol>
+<p>The <strong>Semantic Lookaside Buffer (SLB)</strong> exploits conversational locality to achieve sub-5 µs retrieval latencies, with INT8 vectors dequantized to FP32 on cache insertion to preserve L1-resident lookup performance. Benchmarks on an Apple M4 Max show 4.70 ns INT8 dot-product latency, 3.09 µs tree traversal at 100K nodes (3.4× over FP32), and a P99 read latency of 750 ns under hostile 16-thread contention via epoch-based reclamation.</p>
+<h2 id="1-introduction"><a class="heading-anchor" href="#1-introduction" aria-hidden="true">#</a> 1. Introduction</h2>
+<p>The rapid evolution of LLMs has been defined by a relentless scaling of parameters and training data, yet the underlying architecture remains bound by the <strong>Context Bottleneck</strong>. Self-attention imposes quadratic time and space complexity, <em>O(N²)</em>, in the input sequence length. Sparse attention, RingAttention, and hardware-aware kernel fusion have pushed context windows past one million tokens, but the <em>utility</em> of that context does not scale linearly: reasoning quality degrades over extended horizons, a failure widely characterised as being “Lost in the Middle” [7]. As autonomous agents pursue objectives spanning days or weeks, reliance on transient, volatile context windows becomes untenable. A model cannot simply attend to all of history; it must <em>select</em> what is potentially relevant before attention is applied.</p>
+<p>The prevailing industry response has been Retrieval-Augmented Generation (RAG). In its most common form — “Flat RAG” — information preservation is offloaded to vector databases performing Approximate Nearest Neighbor (ANN) search over unstructured lists of embeddings. Effective for one-shot question answering, Flat RAG fails to model the structure of extended interaction: it treats memory as a featureless plane (a “bag of vectors”) in which the temporal evolution of a conversation, the causal lineage of decisions, and the hierarchy of concepts are all lost. This failure mode is termed <strong>Vector Haze</strong>: retrieving semantically similar but episodically disjointed facts that confuse rather than aid the agent.</p>
+<p>Aeon proposes a paradigm shift — from memory as a passive database retrieval problem to memory as an <strong>active resource management problem</strong> inside a Cognitive Operating System. <em>Allocation</em> becomes the deliberate writing of new semantic concepts into a structured Atlas; <em>paging</em> becomes the loading of relevant semantic clusters into a Semantic Lookaside Buffer for immediate, low-latency access; and <em>context switching</em> is re-framed as deterministic movement between branches of a decision tree.</p>
+<h3 id="contributions"><a class="heading-anchor" href="#contributions" aria-hidden="true">#</a> Contributions</h3>
+<ol>
+<li><strong>Atlas with INT8 quantization.</strong> A memory-mapped, hierarchical index. Symmetric INT8 scalar quantization becomes a first-class storage format, reducing per-node footprint from 3,392 B (FP32) to 1,088 B (INT8) at <em>D</em> = 768 — a 3.1× disk compression ratio. The INT8 dot product via ARM NEON SDOT intrinsics reaches 4.70 ns per comparison, a 5.6× acceleration over the FP32 kernel.</li>
+<li><strong>Write-Ahead Log.</strong> A crash-recovery mechanism with a 3-step lock ordering protocol that decouples disk flush latency (<code>wal_mutex_</code>) from RAM delta-buffer updates (<code>delta_mutex_</code>). Enabling the WAL adds less than 1% insert latency.</li>
+<li><strong>Sidecar Blob Arena.</strong> An append-only, mmap-backed blob file removing the 440-character text ceiling for episodic trace events. The 512-byte <code>TraceEvent</code> struct keeps a 64-byte inline <code>text_preview</code> (one CPU cache line) while offloading full-length LLM summaries to a generationally garbage-collected sidecar file.</li>
+<li><strong>Semantic Lookaside Buffer.</strong> A predictive cache exploiting conversational locality for sub-5 µs retrieval. INT8-stored vectors are dequantized to FP32 on SLB insertion to preserve L1-resident hit performance.</li>
+<li><strong>Epoch-Based Reclamation (EBR).</strong> A lock-free read path guaranteeing that concurrent readers never observe torn or unmapped memory during file growth. Under hostile 16-thread contention, P99 read latency is 750 ns.</li>
+</ol>
+<h2 id="2-related-work"><a class="heading-anchor" href="#2-related-work" aria-hidden="true">#</a> 2. Related Work</h2>
+<p><strong>Retrieval-Augmented Generation.</strong> The dominant grounding paradigm, typically built on Dense Passage Retrieval [6] with ANN indices such as FAISS [5] or HNSW [8]. These are “Flat RAG” systems: a single monolithic vector space where every query is independent. Their primary limitation is Vector Haze — as memory grows, so does the probability of retrieving semantically similar but contextually irrelevant facts. Aeon constrains the search space to the agent’s active context region within the Atlas.</p>
+<p><strong>Memory-augmented LLMs.</strong> MemGPT [11] introduces an OS-like abstraction for managing context windows, but operates in “user space” (Python), relying on the LLM itself to manage memory calls through prompt engineering. Aeon moves that responsibility into a C++23 kernel and reaches sub-microsecond retrieval.</p>
+<p><strong>Neuro-symbolic knowledge graphs.</strong> GraphRAG [2] excels at multi-hop reasoning by making relationships explicit, but suffers from write latency and rigid extraction pipelines. Aeon’s Trace is hybrid: neural embeddings for nodes, symbolic edges for causal constraints.</p>
+<p><strong>Crash recovery in database systems.</strong> ARIES [9] established the principles of write-ahead logging. Aeon adapts them to vector index management with record-level CRC32 checksums and a 3-step lock ordering protocol that keeps flush latency off the insert hot path.</p>
+<p><strong>Epoch-based reclamation.</strong> Fraser’s EBR [3] defers deallocation until all readers advance past the retiring epoch. Aeon uses EBR with cache-line-padded epoch counters to eliminate false sharing under high contention.</p>
+<p><strong>Vector quantization.</strong> Symmetric scalar quantization maps floating-point vectors to fixed-point integers, cutting storage and compute. CSLS [1] has been proposed as a hub-penalising metric for nearest-neighbour search. Aeon integrates INT8 quantization at the storage layer and optionally applies a CSLS penalty during beam-search traversal.</p>
+<h2 id="3-system-architecture"><a class="heading-anchor" href="#3-system-architecture" aria-hidden="true">#</a> 3. System Architecture</h2>
+<p>Aeon implements a hybrid <strong>Cognitive Kernel</strong> designed to bridge high-performance systems programming and high-level AI reasoning.</p>
+<h3 id="31-design-philosophy-the-coreshell-model"><a class="heading-anchor" href="#31-design-philosophy-the-coreshell-model" aria-hidden="true">#</a> 3.1 Design philosophy: the Core–Shell model</h3>
+<ul>
+<li><strong>The Core (Ring 0)</strong> — C++23. All high-frequency, low-latency operations: vector similarity search, tree traversal, memory management, WAL flush, and EBR. It works directly on raw memory pages and uses hardware acceleration (SIMDe on x86-64, NEON SDOT on ARM64).</li>
+<li><strong>The Shell (Ring 3)</strong> — Python. High-level control logic: LLM interaction, prompt engineering, and graph topology management.</li>
+</ul>
+<p>The critical invariant is the <strong>Zero-Copy Constraint</strong>: data is never serialized between Core and Shell during normal operation. The Shell operates on read-only views of shared memory pages via nanobind.</p>
+<h3 id="32-the-atlas-spatial-memory-kernel"><a class="heading-anchor" href="#32-the-atlas-spatial-memory-kernel" aria-hidden="true">#</a> 3.2 The Atlas: spatial memory kernel</h3>
+<p>The Atlas is the foundation of long-term memory, a spatial index over semantic vectors. A memory node is defined as</p>
+<blockquote>
+<p><em>N</em> = { <em>id</em>, <em>v</em>, <em>C</em>, <em>meta</em>, <em>s<sub>q</sub></em> }  (1)</p>
+</blockquote>
+<p>where <em>id</em> is a unique 64-bit identifier, <em>v</em> the embedding vector (FP32 or INT8), <em>C</em> the set of child pointers, <em>meta</em> a fixed-size metadata block, and <em>s<sub>q</sub></em> the quantization scale factor (used only when <em>v</em> is INT8). The Atlas lives on persistent storage but is mapped into the process’s virtual address space via <code>mmap</code>; heap allocation is avoided for node data to guarantee contiguity.</p>
+<h4 id="321-int8-symmetric-scalar-quantization"><a class="heading-anchor" href="#321-int8-symmetric-scalar-quantization" aria-hidden="true">#</a> 3.2.1 INT8 symmetric scalar quantization</h4>
+<p>For a vector <em>v</em> ∈ ℝ<sup>D</sup>:</p>
+<blockquote>
+<p><em>s<sub>q</sub></em> = max<sub>i</sub> |<em>v<sub>i</sub></em>| / 127  (2)</p>
+<p><em>q<sub>i</sub></em> = clamp( round( <em>v<sub>i</sub></em> / <em>s<sub>q</sub></em> ), −127, 127 )  (3)</p>
+</blockquote>
+<p><strong>Remark 1.</strong> Equations (2)–(3) and all subsequent similarity computations assume input embeddings are strictly L2-normalized (‖<em>v</em>‖₂ = 1). Under that constraint the inner product ⟨<em>u</em>, <em>v</em>⟩ is mathematically equivalent to cosine similarity. Every embedding model used in Aeon enforces this invariant at ingestion time.</p>
+<p>The scale factor is stored in the node header; if max<sub>i</sub> |<em>v<sub>i</sub></em>| = 0 the scale defaults to 1.0 and the output is all zeros. The on-disk node stride differs between representations.</p>
+<p><strong>Table 1 — Node stride comparison at <em>D</em> = 768.</strong></p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Parameter</th>
+<th>FP32</th>
+<th>INT8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Centroid storage</td>
+<td>768 × 4 B</td>
+<td>768 × 1 B</td>
+</tr>
+<tr>
+<td>Node stride</td>
+<td>3,392 B</td>
+<td>1,088 B</td>
+</tr>
+<tr>
+<td>File size (100K nodes)</td>
+<td>440 MB</td>
+<td>141 MB</td>
+</tr>
+<tr>
+<td>Compression ratio</td>
+<td>1.0×</td>
+<td>3.1×</td>
+</tr>
+</tbody>
+</table></div><h4 id="322-greedy-simd-descent"><a class="heading-anchor" href="#322-greedy-simd-descent" aria-hidden="true">#</a> 3.2.2 Greedy SIMD descent</h4>
+<p>Retrieval uses a <strong>Greedy SIMD Descent</strong>. For FP32 storage, cosine similarity is computed directly. For INT8 storage, the dot product is computed with NEON SDOT instructions:</p>
+<blockquote>
+<p>raw_dot = Σ<sub>i=0…D−1</sub> <em>q<sub>i</sub><sup>(query)</sup></em> · <em>q<sub>i</sub><sup>(node)</sup></em>  (4)</p>
+</blockquote>
+<p>The final similarity follows from dequantization: <em>sim</em> = raw_dot × <em>s<sub>q</sub><sup>(query)</sup></em> × <em>s<sub>q</sub><sup>(node)</sup></em>. Descent complexity is <em>O</em>(log<sub>B</sub> <em>M</em>), where <em>B</em> is the effective branching factor and <em>M</em> the total node count.</p>
+<p><img src="/__l5e/assets-v1/0f9f8436-2169-4812-a83c-0e8e3959bcc7/aeon-fig2-vector-latency.jpg" alt="768-dimensional vector comparison latency on a log scale: INT8 NEON SDOT 4.7 ns, FP32 SIMDe→NEON 26.5 ns, scalar 47.8 ns, NumPy 1.5 µs, pure Python 217.3 µs" class="zoomable" role="button" tabindex="0" aria-label="Zoom 768-dimensional vector comparison latency on a log scale: INT8 NEON SDOT 4.7 ns, FP32 SIMDe→NEON 26.5 ns, scalar 47.8 ns, NumPy 1.5 µs, pure Python 217.3 µs" title="Click to zoom" loading="lazy" /></p>
+<p><em>Figure 1 — 768-d vector comparison latency (log scale). INT8 NEON SDOT (4.70 ns) achieves a 5.6× acceleration over FP32 (26.5 ns).</em></p>
+<p><img src="/__l5e/assets-v1/d9830fc1-d9e9-47b2-85bf-7b62ed48ba42/aeon-fig1b-tree-traversal.jpg" alt="Tree traversal latency at 100K nodes: FP32 10.5 µs versus INT8 3.09 µs, 3.4× faster" class="zoomable" role="button" tabindex="0" aria-label="Zoom Tree traversal latency at 100K nodes: FP32 10.5 µs versus INT8 3.09 µs, 3.4× faster" title="Click to zoom" loading="lazy" /></p>
+<p><em>Figure 2 — Impact of INT8 storage on tree traversal: 3.4× faster descent at 100K nodes, alongside a 3.1× reduction in on-disk footprint.</em></p>
+<h4 id="323-dynamic-dimensionality"><a class="heading-anchor" href="#323-dynamic-dimensionality" aria-hidden="true">#</a> 3.2.3 Dynamic dimensionality</h4>
+<p>Embedding dimensions vary by model: 384 (MiniLM), 768 (e5-large), 1536 (OpenAI v3). Hard-coding the node stride couples kernel to model, so Aeon computes the stride at runtime. The <code>AtlasHeader</code> stores dimensionality <em>D</em>, metadata size <em>M</em>, and quantization type <em>Q</em>:</p>
+<blockquote>
+<p><em>S</em> = align_up( 64 + payload(<em>D</em>, <em>Q</em>) + <em>M</em>, 64 )  (5)</p>
+</blockquote>
+<p>where payload(<em>D</em>, <em>Q</em>) is <em>D</em> × 4 bytes for FP32 or <em>D</em> × 1 bytes for INT8. A single compiled binary therefore serves any embedding model at any precision without recompilation, preventing model lock-in.</p>
+<h3 id="33-write-ahead-log"><a class="heading-anchor" href="#33-write-ahead-log" aria-hidden="true">#</a> 3.3 Write-Ahead Log</h3>
+<p>To gain crash-recoverability without sacrificing insert throughput, Aeon uses a decoupled WAL with a 3-step lock ordering protocol:</p>
+<ol>
+<li><strong>Serialize (no lock).</strong> The node is encoded into a byte buffer with a 16-byte <code>WalRecordHeader</code> holding a record type tag, payload size, and CRC32 checksum.</li>
+<li><strong>WAL flush (<code>wal_mutex_</code> only).</strong> The record is written to the WAL file and flushed with <code>fdatasync()</code>. The <code>delta_mutex_</code> guarding the RAM delta buffer is <em>not</em> held, so concurrent reads and writes proceed unblocked.</li>
+<li><strong>Apply to RAM (<code>delta_mutex_</code> only).</strong> <code>wal_mutex_</code> is released, <code>delta_mutex_</code> acquired, and the node is <code>memcpy</code>’d into the flat byte-arena delta buffer.</li>
+</ol>
+<p>Disk I/O (step 2) and RAM mutation (step 3) never contend on the same mutex, hiding flush latency behind the insert. On recovery the WAL is replayed sequentially, each CRC32 checksum validated, and torn tail records discarded. The WAL is truncated after each successful compaction.</p>
+<h3 id="34-sidecar-blob-arena"><a class="heading-anchor" href="#34-sidecar-blob-arena" aria-hidden="true">#</a> 3.4 Sidecar Blob Arena</h3>
+<p>The episodic Trace stores events as fixed-size 512-byte <code>TraceEvent</code> structs for <em>O</em>(1) random access. Earlier versions embedded text in a 440-character field, insufficient for LLM transcripts. Aeon replaces that field with a <code>BlobRef</code> indirection:</p>
+<ul>
+<li>A 64-byte <code>text_preview</code> field stores the first 63 characters inline, aligned to one CPU cache line for zero-cost listing.</li>
+<li>A <code>blob_offset</code> / <code>blob_size</code> pair points into an append-only, mmap-backed sidecar file (<code>trace_blobs_genN.bin</code>).</li>
+<li>The sidecar grows by 2× doubling (<code>ftruncate</code> → <code>munmap</code> → <code>mmap</code>) and serves zero-copy reads via <code>std::string_view</code> over the mapped region.</li>
+</ul>
+<p><strong>Generational garbage collection.</strong> During compaction a new generation blob file is created and only blobs referenced by non-tombstoned events are copied forward. The old generation is deleted once all EBR readers have advanced.</p>
+<h3 id="35-double-buffered-shadow-compaction"><a class="heading-anchor" href="#35-double-buffered-shadow-compaction" aria-hidden="true">#</a> 3.5 Double-buffered shadow compaction</h3>
+<p>To support real-time applications (for example game engines at 60 FPS), Aeon implements stutter-free garbage collection inspired by Redis BGSAVE [12]:</p>
+<ol>
+<li><strong>Microsecond freeze.</strong> The kernel locks, swaps the active <code>delta_buffer</code> with a <code>frozen_delta_buffer</code>, and snapshots state — under 10 µs.</li>
+<li><strong>Background copy.</strong> A background thread walks live (non-tombstoned) nodes in the mmap file and the frozen delta buffer, writing them contiguously into a new generation file (<code>atlas_gen2.bin</code>). The main thread keeps serving reads and accepts new writes into the <em>fresh</em> delta buffer.</li>
+<li><strong>Hot swap.</strong> When the copy completes, the kernel locks briefly to swap the <code>MemoryFile</code> handle to the new generation.</li>
+<li><strong>Cleanup.</strong> The old generation file is closed and deleted; the WAL is truncated, as all data is now durably persisted.</li>
+</ol>
+<p>The main thread blocks only during steps 1 and 3 — under 10 µs combined; every expensive I/O operation happens in step 2 on a background thread. The same process applies to the Sidecar Blob Arena: dead blobs are simply not copied forward, achieving zero-overhead garbage collection.</p>
+<h3 id="36-the-trace-episodic-context-graph"><a class="heading-anchor" href="#36-the-trace-episodic-context-graph" aria-hidden="true">#</a> 3.6 The Trace: episodic context graph</h3>
+<p>The Trace supplies temporal and causal context as a DAG <em>G</em> = (<em>V</em>, <em>E</em>). The vertex set consists of heterogeneous <code>TraceEvent</code> nodes (<em>V<sub>user</sub></em>, <em>V<sub>system</sub></em>, <em>V<sub>concept</sub></em>). The edge set defines temporal edges (<em>E<sub>next</sub></em>) and reference edges (<em>E<sub>ref</sub></em>) that connect episodic nodes to their semantic grounding in the Atlas.</p>
+<h3 id="37-trace-block-index"><a class="heading-anchor" href="#37-trace-block-index" aria-hidden="true">#</a> 3.7 Trace Block Index</h3>
+<p>A naive linear scan of the Trace is <em>O</em>(|<em>V</em>|), prohibitive as history grows to 10⁵ events. Events are therefore grouped into <strong>TraceBlocks</strong> of fixed size <em>B</em> = 1024, each maintaining an incrementally updated centroid of its constituent embeddings. Retrieval is a <strong>two-phase SIMD scan</strong>:</p>
+<ol>
+<li><strong>Block scan.</strong> A SIMD search over block centroids selects the top-<em>K</em> most relevant time windows, at cost <em>O</em>(|<em>V</em>| / <em>B</em>).</li>
+<li><strong>Event scan.</strong> A deep scan runs only inside those top-<em>K</em> blocks, at cost <em>O</em>(<em>K</em> · <em>B</em>).</li>
+</ol>
+<blockquote>
+<p><em>T<sub>search</sub></em> = <em>O</em>( |<em>V</em>| / 1024 + <em>K</em> × 1024 )  (6)</p>
+</blockquote>
+<p>With small <em>K</em> (typically 3–5), retrieval stays under 50 ms even for large traces by exploiting the temporal locality of semantic context.</p>
+<h3 id="38-the-zero-copy-interface"><a class="heading-anchor" href="#38-the-zero-copy-interface" aria-hidden="true">#</a> 3.8 The zero-copy interface</h3>
+<p>Aeon uses nanobind to expose C++ memory structures to Python: raw C++ pointers are wrapped in a Python capsule and reinterpreted as a read-only NumPy array buffer. Any attempt to mutate the underlying memory from the Shell raises a runtime exception.</p>
+<h2 id="4-the-semantic-lookaside-buffer"><a class="heading-anchor" href="#4-the-semantic-lookaside-buffer" aria-hidden="true">#</a> 4. The Semantic Lookaside Buffer</h2>
+<h3 id="41-theory-semantic-locality"><a class="heading-anchor" href="#41-theory-semantic-locality" aria-hidden="true">#</a> 4.1 Theory: semantic locality</h3>
+<p>Traditional caching relies on address transparency, but in vector databases exact equality is rare. Aeon introduces <strong>Semantic Inertia</strong>: in continuous dialogue the topic vector <em>t<sub>i</sub></em> at turn <em>i</em> is highly correlated with <em>t<sub>i+1</sub></em>. Formally, <em>P</em>( dist(<em>q<sub>i+1</sub></em>, <em>q<sub>i</sub></em>) &lt; ε ) ≈ 1.</p>
+<h3 id="42-architecture"><a class="heading-anchor" href="#42-architecture" aria-hidden="true">#</a> 4.2 Architecture</h3>
+<p>The SLB is a small contiguous ring buffer of fixed size <em>K</em> = 64, tuned to fit L1/L2 cache. Each entry stores a centroid <em>c<sub>node</sub></em> ∈ ℝ<sup>D</sup> and a direct pointer to the full node in the Atlas.</p>
+<p><strong>FP32-only cache.</strong> The SLB stores exclusively FP32 vectors regardless of Atlas quantization; INT8 vectors are dequantized on insertion. This preserves the 3.56 µs cache-hit latency by avoiding dequantization on every scan — each scan performs <em>K</em> dot products, and the FP32 path already executes within L1/L2 boundaries.</p>
+<p><strong>Brute-force SIMD search.</strong> Because <em>K</em> is small, an exhaustive linear scan with AVX-512/NEON beats even a few steps of an <em>O</em>(log <em>N</em>) traversal, thanks to perfect hardware prefetching and zero pointer chasing.</p>
+<h4 id="421-multi-tenant-isolation"><a class="heading-anchor" href="#421-multi-tenant-isolation" aria-hidden="true">#</a> 4.2.1 Multi-tenant isolation</h4>
+<p>In multi-agent deployments a single shared SLB would leak semantic information between tenants. Aeon shards the SLB into 64 independent ring buffers, each with its own mutex, routed deterministically: <code>shard_id = hash(session_id) mod 64</code>. This lock-striping isolates both contention and semantic context — an agent in session A can never evict or read entries from session B — allowing the SLB to scale linearly beyond 100,000 concurrent sessions on a single node.</p>
+<h3 id="43-the-speculative-fetch-algorithm"><a class="heading-anchor" href="#43-the-speculative-fetch-algorithm" aria-hidden="true">#</a> 4.3 The speculative fetch algorithm</h3>
+<p>Given a query vector <em>q</em>, a hit threshold <em>τ<sub>hit</sub></em>, and the SLB buffer <em>B</em>, the lookup procedure scans the shard for the best-matching centroid and returns the corresponding node pointer when the similarity exceeds <em>τ<sub>hit</sub></em>; otherwise it returns NULL and the request falls through to Atlas tree traversal.</p>
+<h2 id="5-experimental-setup"><a class="heading-anchor" href="#5-experimental-setup" aria-hidden="true">#</a> 5. Experimental Setup</h2>
+<p>All measurements were collected on an Apple M4 Max using Google Benchmark [4], with the C++23 core compiled for ARM64 (NEON SDOT) and SIMDe [10] providing the x86-64 fallback path.</p>
+<h2 id="6-results"><a class="heading-anchor" href="#6-results" aria-hidden="true">#</a> 6. Results</h2>
+<h3 id="61-micro-benchmark-vector-comparison"><a class="heading-anchor" href="#61-micro-benchmark-vector-comparison" aria-hidden="true">#</a> 6.1 Micro-benchmark: vector comparison</h3>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Kernel</th>
+<th>Latency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INT8 NEON SDOT + dequantize</td>
+<td>4.7 ns</td>
+</tr>
+<tr>
+<td>FP32 SIMDe → NEON</td>
+<td>26.5 ns</td>
+</tr>
+<tr>
+<td>Scalar (auto-vectorized)</td>
+<td>47.8 ns</td>
+</tr>
+<tr>
+<td>NumPy (Accelerate)</td>
+<td>1.5 µs</td>
+</tr>
+<tr>
+<td>Pure Python (interpreted)</td>
+<td>217.3 µs</td>
+</tr>
+</tbody>
+</table></div><h3 id="62-macro-benchmark-traversal-and-compression"><a class="heading-anchor" href="#62-macro-benchmark-traversal-and-compression" aria-hidden="true">#</a> 6.2 Macro-benchmark: traversal and compression</h3>
+<p><strong>Table 2 — Atlas traversal and file size at <em>N</em> = 100,000.</strong></p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Format</th>
+<th>Traversal</th>
+<th>File size</th>
+<th>Ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FP32</td>
+<td>10.5 µs</td>
+<td>440 MB</td>
+<td>1.0×</td>
+</tr>
+<tr>
+<td>INT8</td>
+<td>3.09 µs</td>
+<td>141 MB</td>
+<td>3.1×</td>
+</tr>
+<tr>
+<td>Speedup</td>
+<td>3.4×</td>
+<td>3.1×</td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div><p>The 3.4× traversal speedup combines the 5.6× faster per-comparison kernel with the fixed overhead of tree navigation (pointer chasing, branching). The 3.1× spatial compression directly reduces I/O bandwidth requirements.</p>
+<h3 id="63-wal-overhead"><a class="heading-anchor" href="#63-wal-overhead" aria-hidden="true">#</a> 6.3 WAL overhead</h3>
+<p><strong>Table 3 — WAL overhead on insert latency (<em>N</em> = 10,000, FP32).</strong></p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Config</th>
+<th>Median</th>
+<th>Std. dev.</th>
+<th>Throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WAL disabled</td>
+<td>2.24 µs</td>
+<td>±0.006 µs</td>
+<td>447,870 ops/s</td>
+</tr>
+<tr>
+<td>WAL enabled</td>
+<td>2.23 µs</td>
+<td>±0.008 µs</td>
+<td>449,105 ops/s</td>
+</tr>
+<tr>
+<td>Overhead</td>
+<td>&lt; 1% (within measurement noise)</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div><p>The WAL-enabled median (2.23 µs) sits within the standard deviation of the WAL-disabled measurement, confirming that the 3-step lock ordering decouples flush latency from the insert hot path: <code>fdatasync()</code> in step 2 executes concurrently with delta-buffer operations in step 3 across independent mutexes.</p>
+<h3 id="64-scalability-10k-to-1m-nodes"><a class="heading-anchor" href="#64-scalability-10k-to-1m-nodes" aria-hidden="true">#</a> 6.4 Scalability: 10K to 1M nodes</h3>
+<p><img src="/__l5e/assets-v1/0fa60957-b1bc-4333-a4bf-c8af5eac57f5/aeon-fig4-scalability.jpg" alt="Retrieval latency versus database size on a log-log scale: flat scan grows linearly from 0.5 ms to 70 ms, while the Aeon Atlas stays around 10.5 µs, giving a 6,500× speedup at one million nodes" class="zoomable" role="button" tabindex="0" aria-label="Zoom Retrieval latency versus database size on a log-log scale: flat scan grows linearly from 0.5 ms to 70 ms, while the Aeon Atlas stays around 10.5 µs, giving a 6,500× speedup at one million nodes" title="Click to zoom" loading="lazy" /></p>
+<p><em>Figure 3 — Query latency vs. database size (log-log). Flat search scales linearly; the Atlas scales logarithmically, with INT8 adding a further 3.4× improvement.</em></p>
+<p>Flat brute-force search scales linearly: 0.52 ms (10K) → 5.87 ms (100K) → 69.8 ms (1M). The FP32 Atlas scales logarithmically: 7.1 µs (10K, depth 2) → 10.5 µs (100K, depth 3) → 10.5 µs (1M, depth 4). The INT8 Atlas reduces this further to 1.82 µs (10K) and 3.08 µs (100K). At one million nodes the FP32 Atlas is more than 6,500× faster than flat scan (10.5 µs vs. 69.8 ms); each tree level partitions the search space by branching factor <em>B</em> = 64, yielding <em>O</em>(log<sub>B</sub> <em>N</em>) complexity.</p>
+<h3 id="65-slb-cache-performance-and-isolation"><a class="heading-anchor" href="#65-slb-cache-performance-and-isolation" aria-hidden="true">#</a> 6.5 SLB cache performance and isolation</h3>
+<p>SLB cache-hit latency is 3.56 µs (median, 64-element scan). A cache miss against a warm Atlas — immediate fallback to tree traversal — costs 3.59 µs; the 0.03 µs delta confirms that the SLB scan and the first Atlas comparison are both L1-resident.</p>
+<p><strong>L1 residency proof.</strong> The <code>BM_SLB_CacheIsolation</code> benchmark measures scan latency as a function of cached items and shows linear scaling: 0.867 µs at 16 items, 1.70 µs at 32, and 3.46 µs at 64. Had any portion spilled to DRAM, scaling would exhibit a step function instead.</p>
+<p>Under the “Conversational Walk” workload — simulating realistic chatbot sequences with high semantic locality — the SLB exceeds an 85% hit rate, giving an effective average latency of</p>
+<blockquote>
+<p><em>L<sub>eff</sub></em> = (0.85 × 3.56) + (0.15 × 10.5) ≈ 4.60 µs  (7)</p>
+</blockquote>
+<p><img src="/__l5e/assets-v1/1147f5e9-9955-400e-acc2-cbde89fa423f/aeon-fig5-latency-cdf.jpg" alt="Retrieval latency CDF on a log scale comparing warm Aeon with SLB enabled, cold Aeon with SLB disabled, and HNSW in FAISS, showing an 85% SLB hit rate below 5 microseconds and a more than 300× gap to HNSW" class="zoomable" role="button" tabindex="0" aria-label="Zoom Retrieval latency CDF on a log scale comparing warm Aeon with SLB enabled, cold Aeon with SLB disabled, and HNSW in FAISS, showing an 85% SLB hit rate below 5 microseconds and a more than 300× gap to HNSW" title="Click to zoom" loading="lazy" /></p>
+<p><em>Figure 4 — Retrieval latency CDF (log scale). Warm Aeon resolves 85% of queries in under 5 µs via SLB hits, while HNSW clusters around 1.5 ms — a gap exceeding 300×.</em></p>
+<h3 id="66-ebr-contention"><a class="heading-anchor" href="#66-ebr-contention" aria-hidden="true">#</a> 6.6 EBR contention</h3>
+<p>Under hostile contention (15 reader threads, 1 writer thread, 100K iterations per reader across 16 hardware threads), cycle-precise measurement yields a mean of 210.8 ns, P50 of 167 ns, P99 of 750 ns, and P99.9 of 1,083 ns. A sub-microsecond P99 confirms that cache-line padding eliminates false sharing; writers retired 12,353 regions across 1.5M read samples with no observed torn reads.</p>
+<h3 id="67-beam-search-and-csls-analysis"><a class="heading-anchor" href="#67-beam-search-and-csls-analysis" aria-hidden="true">#</a> 6.7 Beam search and CSLS analysis</h3>
+<p><strong>Table 4 — Beam search latency at <em>N</em> = 1,000,000</strong> (pool of 1,000 unique query vectors).</p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Config</th>
+<th>P50</th>
+<th>P99</th>
+<th>Nodes/query</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>beam = 1 (greedy)</td>
+<td>25.6 µs</td>
+<td>42.6 µs</td>
+<td>4.0</td>
+</tr>
+<tr>
+<td>beam = 3</td>
+<td>41.8 µs</td>
+<td>90.0 µs</td>
+<td>4.1</td>
+</tr>
+<tr>
+<td>beam = 3 + CSLS</td>
+<td>30.2 µs</td>
+<td>42.1 µs</td>
+<td>4.1</td>
+</tr>
+</tbody>
+</table></div><p>The beam = 3 configuration scales sub-linearly (1.63× P50 ratio vs. beam = 1, against a theoretical 3× upper bound). Profiling the CSLS penalty showed a 27.7% latency reduction (30.2 µs vs. 41.8 µs), but strict node-visitation counting rejected the hypothesis of algorithmic pruning — nodes evaluated remained identical at 4.1 per query. The speedup is a superscalar branch-prediction artifact on Apple Silicon rather than a reduction in computational complexity: the CSLS hub penalty reshapes similarity scores into a more predictable branch pattern during beam selection, letting the M4 Max branch predictor achieve higher accuracy.</p>
+<h3 id="68-trace-garbage-collection"><a class="heading-anchor" href="#68-trace-garbage-collection" aria-hidden="true">#</a> 6.8 Trace garbage collection</h3>
+<p>Evaluated on a 100K-event store (≈67 MB):</p>
+<ul>
+<li>Tombstone scan: ≈100 µs per 100K events (sequential scan with flag check).</li>
+<li>Full compaction (GC ratio 0.5, retaining 50K events): 966 ms median wall-clock, 312 ms median CPU time.</li>
+</ul>
+<p>The gap between wall-clock and CPU time is attributable to I/O — writing the new generation file and copying the generational blob arena — confirming that compaction is viable as a background operation that never blocks the insert/query path.</p>
+<h3 id="69-zero-copy-overhead"><a class="heading-anchor" href="#69-zero-copy-overhead" aria-hidden="true">#</a> 6.9 Zero-copy overhead</h3>
+<p>Transferring 10 MB of vector data from C++ to Python costs roughly 334 ns via nanobind zero-copy shared memory. Traditional serialization is dramatically worse: JSON at ≈318 ms (≈10⁶× slower) and Pickle at ≈32.3 ms (≈10⁵× slower).</p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Method</th>
+<th>Transfer latency (10 MB payload)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Aeon zero-copy</td>
+<td>334 ns</td>
+</tr>
+<tr>
+<td>Pickle (ndarray)</td>
+<td>132 µs</td>
+</tr>
+<tr>
+<td>Pickle (list[float])</td>
+<td>32.3 ms</td>
+</tr>
+<tr>
+<td>JSON (list[float])</td>
+<td>318 ms</td>
+</tr>
+</tbody>
+</table></div><p><img src="/__l5e/assets-v1/c27f32ab-8670-4d3e-a108-d0a274892229/aeon-fig6-zero-copy.jpg" alt="Cross-language memory transfer latency for a 10 MB payload on a log scale: Aeon zero-copy 334 ns baseline, Pickle ndarray 132 µs, Pickle list 32.3 ms, JSON list 318 ms" class="zoomable" role="button" tabindex="0" aria-label="Zoom Cross-language memory transfer latency for a 10 MB payload on a log scale: Aeon zero-copy 334 ns baseline, Pickle ndarray 132 µs, Pickle list 32.3 ms, JSON list 318 ms" title="Click to zoom" loading="lazy" /></p>
+<p><em>Figure 5 — Cross-language memory transfer latency (10 MB payload, log scale). Zero-copy transfer eliminates object-boxing overhead.</em></p>
+<h3 id="610-summary"><a class="heading-anchor" href="#610-summary" aria-hidden="true">#</a> 6.10 Summary</h3>
+<p><strong>Table 5 — Summary of Aeon performance characteristics.</strong></p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INT8 dot product</td>
+<td>4.70 ns</td>
+</tr>
+<tr>
+<td>FP32 cosine similarity</td>
+<td>26.5 ns</td>
+</tr>
+<tr>
+<td>INT8 / FP32 speedup</td>
+<td>5.6×</td>
+</tr>
+<tr>
+<td>Tree traversal (100K, INT8)</td>
+<td>3.09 µs</td>
+</tr>
+<tr>
+<td>Spatial compression</td>
+<td>3.1×</td>
+</tr>
+<tr>
+<td>WAL overhead</td>
+<td>&lt; 1%</td>
+</tr>
+<tr>
+<td>SLB cache hit</td>
+<td>3.56 µs</td>
+</tr>
+<tr>
+<td>EBR P99 (16 threads)</td>
+<td>750 ns</td>
+</tr>
+<tr>
+<td>Zero-copy transfer (10 MB)</td>
+<td>334 ns</td>
+</tr>
+</tbody>
+</table></div><h2 id="7-conclusion"><a class="heading-anchor" href="#7-conclusion" aria-hidden="true">#</a> 7. Conclusion</h2>
+<p>Aeon is a Cognitive Operating System for long-horizon LLM agents. Its central argument is that LLM memory must be treated as an active resource-management task, governed by principles drawn from classical operating system kernels.</p>
+<h3 id="71-key-contributions"><a class="heading-anchor" href="#71-key-contributions" aria-hidden="true">#</a> 7.1 Key contributions</h3>
+<p>First, INT8 symmetric scalar quantization delivers a 3.1× disk compression ratio and 5.6× math acceleration via NEON SDOT, making edge deployment viable for knowledge bases that previously required hundreds of megabytes. Second, the decoupled WAL with 3-step lock ordering provides crash-recoverability at under 1% insert latency overhead, achieved by ensuring that disk I/O and RAM mutation never contend on the same mutex. Third, the Sidecar Blob Arena removes the 440-character text ceiling that constrained episodic trace storage, enabling full LLM transcript archival with generational garbage collection. Throughout, the SLB sustains sub-5 µs effective retrieval latency at 85%+ hit rates — the decision to dequantize INT8 vectors to FP32 on cache insertion preserves L1-resident lookup performance regardless of the underlying storage format.</p>
+<h3 id="72-future-work"><a class="heading-anchor" href="#72-future-work" aria-hidden="true">#</a> 7.2 Future work</h3>
+<p><strong>Multi-modal vector representations.</strong> Aeon currently operates only on text embeddings. A natural extension is spatial co-location of audio, video, and structured-data embeddings inside the same Atlas index. The hierarchical tree is agnostic to semantic content; the open challenges are meaningful distance metrics across heterogeneous modalities and the variable dimensionality multi-modal encoders produce.</p>
+<p><strong>Hardware-enforced isolation for multi-tenancy.</strong> As Aeon grows to serve multiple users or agents in a shared deployment, cryptographic guarantees of memory isolation become necessary. Intel SGX and ARM CCA provide hardware enclaves that could enforce tenant boundaries at the memory page level, preventing even a compromised kernel from reading another tenant’s semantic memory — extending the OS analogy from process isolation to full memory protection.</p>
+<h2 id="references"><a class="heading-anchor" href="#references" aria-hidden="true">#</a> References</h2>
+<ol>
+<li>A. Conneau, G. Lample, M. Ranzato, L. Denoyer, H. Jégou. <em>Word translation without parallel data.</em> ICLR, 2018.</li>
+<li>D. Edge, H. Trinh, N. Cheng, J. Bradley, A. Chao, A. Mody, S. Ben-David, C. Larson. <em>From local to global: a GraphRAG approach to query-focused summarization.</em> arXiv:2404.16130, 2024.</li>
+<li>K. Fraser. <em>Practical Lock-Freedom.</em> PhD thesis, University of Cambridge, 2004.</li>
+<li>Google Inc. <em>Google Benchmark: a microbenchmark support library.</em> 2024.</li>
+<li>J. Johnson, M. Douze, H. Jégou. <em>Billion-scale similarity search with GPUs.</em> arXiv:1702.08734, 2017.</li>
+<li>V. Karpukhin, B. Oguz, S. Min, P. Lewis, L. Wu, S. Edunov, D. Chen, W. Yih. <em>Dense passage retrieval for open-domain question answering.</em> arXiv:2004.04906, 2020.</li>
+<li>N. F. Liu, K. Lin, J. Hewitt, A. Paranjape, M. Bevilacqua, F. Petroni, P. Liang. <em>Lost in the middle: how language models use long contexts.</em> arXiv:2307.03172, 2023.</li>
+<li>Y. A. Malkov, D. A. Yashunin. <em>Efficient and robust approximate nearest neighbor search using hierarchical navigable small world graphs.</em> IEEE TPAMI 42(4):824–836, 2018.</li>
+<li>C. Mohan, D. Haderle, B. Lindsay, H. Pirahesh, P. Schwarz. <em>ARIES: a transaction recovery method supporting fine-granularity locking and partial rollbacks using write-ahead logging.</em> ACM TODS 17(1):94–162, 1992.</li>
+<li>E. Nemeth et al. <em>SIMDe: implementations of SIMD instruction sets for systems which don’t natively support them.</em> 2017.</li>
+<li>C. Packer, V. Fang, S. G. Patil, K. Lin, S. Wooders, J. E. Gonzalez. <em>MemGPT: towards LLMs as operating systems.</em> arXiv:2310.08560, 2023.</li>
+<li>S. Sanfilippo. <em>Redis persistence demystified.</em> 2009.</li>
+</ol>
+]]></content:encoded>
+    </item>
+  </channel>
+</rss>
