@@ -163,10 +163,10 @@
         "profile.roles_label": "Roller"
     },
     "about": {
-        "title": "About",
+        "title": "Hakkımda",
         "paragraphs": [
-            "Ben Mustafa Arslan, İstanbul merkezli bir yazılım/çözüm mimarı ve uygulamalı yapay zeka araştırmacısıyım. Yüksek performanslı, güvenilir yazılım sistemleri tasarlıyor; agentic AI, graf zekası ve neuro-symbolic mimarilerin karmaşık gerçek dünya problemlerini nasıl çözebileceğini araştırıyorum.",
-            "Kariyerim kurumsal yazılım, cloud-native platformlar, ödeme sistemleri, havacılık, telekomünikasyon ve dolandırıcılık tespiti gibi alanları kapsıyor. Derin teknik problem çözme ile pratik ürün etkisinin kesiştiği noktada çalışmaktan keyif alıyorum: belirsiz problemleri net mimarilere, dayanıklı sistemlere ve karmaşık kararları kolaylaştıran araçlara dönüştürmek.",
+            "Ben Mustafa Arslan, İstanbul merkezli bir yazılım/çözüm mimarı ve uygulamalı yapay zeka araştırmacısıyım. Yüksek performanslı, güvenilir yazılım sistemleri tasarlıyor; agentic AI, graph intelligence ve neuro-symbolic mimarilerin karmaşık gerçek dünya problemlerini nasıl çözebileceğini araştırıyorum.",
+            "Kariyerim kurumsal yazılım, cloud-native platformlar, ödeme sistemleri, havacılık, telekomünikasyon ve dolandırıcılık tespiti gibi alanları kapsıyor. Derin teknik problem çözme ile pratik ürün etkisinin kesiştiği noktada belirsiz problemleri net mimarilere, dayanıklı sistemlere ve karmaşık kararları kolaylaştıran araçlara dönüştürmekten keyif alıyorum. ",
             "Profesyonel çalışmalarımın dışında, uzun ufuklu AI agent’lar, AI hafıza sistemleri, retrieval mimarileri ve akıllı finansal sistemler üzerine bağımsız araştırma projeleri geliştiriyor ve yayınlıyorum. Bu site; yazılarımı, araştırmalarımı, konferans notlarımı ve hâlâ üzerinde çalıştığım fikirlerimi paylaştığım yer."
         ],
         "recentHeading": "Recent"
