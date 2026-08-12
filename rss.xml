@@ -2,15 +2,15 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Mustafa Arslan — Researcher &amp; Architect</title>
-    <link>https://mustafarslan.github.io</link>
+    <link>https://mustafarslan.me</link>
     <description>Ideas, notes, and shorter-form writing.</description>
     <language>en</language>
-    <lastBuildDate>Tue, 11 Aug 2026 08:35:30 GMT</lastBuildDate>
-    <atom:link href="https://mustafarslan.github.io/rss.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 12 Aug 2026 08:28:13 GMT</lastBuildDate>
+    <atom:link href="https://mustafarslan.me/rss.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Hello, world</title>
-      <link>https://mustafarslan.github.io/blog/hello-world</link>
-      <guid isPermaLink="true">https://mustafarslan.github.io/blog/hello-world</guid>
+      <link>https://mustafarslan.me/blog/hello-world</link>
+      <guid isPermaLink="true">https://mustafarslan.me/blog/hello-world</guid>
       <pubDate>Sat, 01 Aug 2026 00:00:00 GMT</pubDate>
       <description>A short welcome post and a note on what this site is for.</description>
       <content:encoded><![CDATA[<p>This is my personal corner of the internet. I built it to have a single place where I
