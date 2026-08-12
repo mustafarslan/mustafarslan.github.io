@@ -57,10 +57,10 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://mustafarslan.me/blog/hello-world</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/blog/hello-world"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/blog/hello-world?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/blog/hello-world"/>
+    <loc>https://mustafarslan.me/blog/harness-engineering</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/blog/harness-engineering"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/blog/harness-engineering?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/blog/harness-engineering"/>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -81,18 +81,34 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://mustafarslan.me/tags/meta</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/meta"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/meta?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/meta"/>
+    <loc>https://mustafarslan.me/tags/Agentic%20AI</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Agentic%20AI"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Agentic%20AI?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Agentic%20AI"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://mustafarslan.me/tags/writing</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/writing"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/writing?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/writing"/>
+    <loc>https://mustafarslan.me/tags/Context%20Engineering</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Context%20Engineering"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Context%20Engineering?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Context%20Engineering"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Harness%20Engineering</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Harness%20Engineering"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Harness%20Engineering?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Harness%20Engineering"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Software%20Engineering</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Software%20Engineering"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Software%20Engineering?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Software%20Engineering"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
