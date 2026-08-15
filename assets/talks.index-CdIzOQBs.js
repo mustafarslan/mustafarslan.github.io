@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BKllkxft.js";import{M as t}from"./preload-helper--94l300l.js";import{a as n}from"./index-CHHaGyVE.js";import{n as r}from"./TalkListPage-C2Ptc7n-.js";var i=e();function a(){let{talks:e}=n.useLoaderData(),{page:a}=n.useSearch(),o=t({from:n.fullPath});return(0,i.jsx)(r,{talks:e,page:a,onPageChange:e=>o({search:{page:e}})})}export{a as component};
