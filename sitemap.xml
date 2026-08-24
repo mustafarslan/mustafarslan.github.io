@@ -65,6 +65,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/papers/nexus-kv-cache-splicing</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/papers/nexus-kv-cache-splicing"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/papers/nexus-kv-cache-splicing?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/papers/nexus-kv-cache-splicing"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/papers/aeon-neuro-symbolic-memory</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/papers/aeon-neuro-symbolic-memory"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/papers/aeon-neuro-symbolic-memory?lang=tr"/>
@@ -105,10 +113,34 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/tags/Inference%20Systems</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Inference%20Systems"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Inference%20Systems?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Inference%20Systems"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/KV%20Cache</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/KV%20Cache"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/KV%20Cache?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/KV%20Cache"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/tags/Software%20Engineering</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Software%20Engineering"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Software%20Engineering?lang=tr"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Software%20Engineering"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Tool%20Use</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Tool%20Use"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Tool%20Use?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Tool%20Use"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>

@@ -5,8 +5,365 @@
     <link>https://mustafarslan.me</link>
     <description>Academic papers and preprints.</description>
     <language>en</language>
-    <lastBuildDate>Tue, 18 Aug 2026 10:44:42 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 24 Aug 2026 06:40:38 GMT</lastBuildDate>
     <atom:link href="https://mustafarslan.me/rss/papers.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Nexus: Depth-Adaptive KV-Cache Splicing and Retrieval-Decoupled Tool Routing for Agentic LLMs on Unified Memory</title>
+      <link>https://mustafarslan.me/papers/nexus-kv-cache-splicing</link>
+      <guid isPermaLink="true">https://mustafarslan.me/papers/nexus-kv-cache-splicing</guid>
+      <pubDate>Mon, 24 Aug 2026 00:00:00 GMT</pubDate>
+      <description>Nexus decouples agentic tool routing from schema-prefill cost with an INT8 semantic lookaside buffer and a calibrated cross-encoder gate, and repairs relocated KV blocks with a depth-adaptive suffix redecode that never regresses below a full prefill.</description>
+      <content:encoded><![CDATA[<h2 id="abstract"><a class="heading-anchor" href="#abstract" aria-hidden="true">#</a> Abstract</h2>
+<p>Agentic large language models (LLMs) on the Model Context Protocol (MCP) re-encode verbose tool schemas every turn, so prefill — quadratic in sequence length — dominates time-to-first-token (TTFT) as the tool registry grows.</p>
+<p>Nexus’s primary lever is to <strong>decouple routing from the schema-prefill cost</strong>: an INT8 semantic lookaside buffer (SLB) with a calibrated cross-encoder margin gate selects tools by retrieval, and arguments are generated over a compressed textual signature (median 19 tokens) rather than over spliced key/value (KV) cache. This path is depth-independent: routing accuracy stays near 89% as the registry scales to 250 tools — where a concatenate-all-schemas baseline overflows the context window entirely — and it reaches a first-argument token 1.66× sooner than a full-schema re-prefill at an ≈80% main-context token saving.</p>
+<p>As a secondary, bounded lever we transplant a compiled schema KV block directly into the live context. This is fundamentally limited by rotary position embedding (RoPE) phase drift: an anchored splice is output-exact, but off-anchor placement corrupts attention, so beyond a threshold <em>P</em> = 256 Nexus repairs the seam with a depth-adaptive suffix redecode that escalates to a full re-prefill. The resulting never-regress property is a guarantee on output <strong>fidelity</strong> (top-1 agreement, <em>D</em><sub>KL</sub> ≈ 0) — not on latency, which can dip to 0.98× before converging to parity — alongside a 1.1–1.7× TTFT speedup at moderate depth that narrows to parity at deep context.</p>
+<p>Two negative results bound the design: the off-anchor RoPE fidelity boundary, and the failure of a reference-free drift gate to predict drift (Spearman <em>ρ</em> = 0.193). All measurements are from one model tuple (<code>Qwen2.5-14B-Instruct Q4_K_M</code>) on Apple-silicon unified memory; the <em>qualitative</em> boundaries generalize, while the <em>quantitative</em> envelope is tuple-specific.</p>
+<h2 id="1-introduction"><a class="heading-anchor" href="#1-introduction" aria-hidden="true">#</a> 1. Introduction</h2>
+<p>Tool-augmented LLM agents increasingly standardize on the Model Context Protocol (MCP), presenting the model with a registry of callable tools, each described by a verbose JSON schema. As the registry scales to hundreds of tools, these schemas dominate the prompt. Because self-attention is <em>O(N²)</em> in sequence length <em>N</em>, re-encoding tool schemas every turn imposes a <strong>prefill wall</strong> that scales poorly with the number and verbosity of available tools.</p>
+<p>An appealing optimization is to compile each schema once into a KV block and transplant it into the live context at inference time, paying the prefill cost only once. We find this is fundamentally constrained by the position dependence of rotary position embeddings (RoPE): a block compiled for one absolute position cannot be relocated to an arbitrary depth without corrupting attention. Prior serving systems sidestep the problem by never moving cache — paged and prefix-shared KV keep blocks at the positions where they were computed. Nexus instead asks how far a <strong>relocated</strong> schema block can be trusted, and what it costs to repair it.</p>
+<h3 id="contributions"><a class="heading-anchor" href="#contributions" aria-hidden="true">#</a> Contributions</h3>
+<ol>
+<li><strong>Retrieval-decoupled routing</strong> (<em>measured</em>) — the more durable and transferable result. Tool selection runs over an INT8 semantic lookaside buffer with a calibrated cross-encoder gate, and arguments are generated over a compressed textual signature, avoiding the splice seam. It is depth-independent, scales to 250 tools where the concatenate-all baseline cannot run, and delivers a 1.66× first-argument latency win at ≈80% token saving.</li>
+<li><strong>Depth-adaptive recompute with a never-regress guarantee</strong> (<em>measured</em>) — a bounded, characterized secondary lever. Past a 256-token splice threshold, Nexus re-decodes a suffix fraction <em>R</em>(<em>n</em><sub>past</sub>) that scales with depth to 100%, holding output fidelity exact and converging gracefully to prefill parity.</li>
+<li><strong>Systems mechanisms for unified memory</strong> (<em>implemented</em>): transposed-V splicing for soft-capped attention models and cache-line hardening of the block allocator.</li>
+<li><strong>Two bounding negative results</strong> (<em>well-supported</em>): the off-anchor RoPE fidelity boundary and the failure of reference-free drift gating.</li>
+</ol>
+<p>Three research questions organize the paper. <strong>RQ1</strong>: how far can a relocated schema block be trusted before its next-token distribution departs from a full prefill? <strong>RQ2</strong>: what does repairing that drift cost in TTFT? <strong>RQ3</strong>: can routing and argument generation avoid the splice path entirely?</p>
+<h2 id="2-related-work"><a class="heading-anchor" href="#2-related-work" aria-hidden="true">#</a> 2. Related Work</h2>
+<p><strong>Tool retrieval and schema compression.</strong> The two standard responses to schema bloat both act before the model. Retrieval-augmented tool selection — exemplified by RAG-MCP — fetches only the relevant MCP schemas prior to prefill. Schema-level compilation and learned latent tool retrieval shrink or replace tool descriptions at the application and embedding levels, the latter requiring trained alignment. Nexus adopts the same retrieval principle to decouple routing but adds a complementary system-level lever: direct KV transplantation for the schemas that remain, with a zero-shot calibrated margin gate over frozen embeddings.</p>
+<p><strong>KV-cache management for serving.</strong> Paged and prefix-shared KV management and dynamic virtual-memory schemes eliminate fragmentation and reuse cache <em>in place</em>; they do not relocate a block to a new position, which is precisely the regime Nexus characterizes. RedKnot pushes reuse to the granularity of individual attention heads but keeps cache in place, whereas Nexus relocates coarse per-tool blocks.</p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>System</th>
+<th>KV strategy</th>
+<th>Routing</th>
+<th>Reported metric (native HW/workload)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RAG-MCP</td>
+<td>in-place (prompt-level)</td>
+<td>retrieve-<em>K</em> + prefill</td>
+<td>43.1% vs 13.6% tool selection; &gt;50% prompt tokens</td>
+</tr>
+<tr>
+<td>vLLM / PagedAttn</td>
+<td>in-place (paged)</td>
+<td>—</td>
+<td>2–4× throughput</td>
+</tr>
+<tr>
+<td>SGLang / RadixAttn</td>
+<td>in-place (prefix reuse)</td>
+<td>—</td>
+<td>up to 6.4× throughput</td>
+</tr>
+<tr>
+<td>vAttention</td>
+<td>in-place (virtual contig.)</td>
+<td>—</td>
+<td>up to 1.23× vs paged kernels</td>
+</tr>
+<tr>
+<td>RedKnot</td>
+<td>in-place (head-aware)</td>
+<td>—</td>
+<td>resource-efficiency gains (qualitative)</td>
+</tr>
+<tr>
+<td><strong>Nexus</strong> (this work)</td>
+<td><strong>relocate (per-tool)</strong></td>
+<td>SLB + margin gate</td>
+<td>routing 89%@250 tools; first-arg 1.66×; deep-splice 1.1–1.7×</td>
+</tr>
+</tbody>
+</table></div><p>Non-Nexus numbers are reported on different hardware and workloads, so we treat them as contextual rather than a controlled head-to-head.</p>
+<h2 id="3-rope-phase-drift"><a class="heading-anchor" href="#3-rope-phase-drift" aria-hidden="true">#</a> 3. RoPE Phase Drift</h2>
+<p>RoPE injects position by rotating query/key feature pairs by a position-dependent angle. For feature pair <em>i</em> with base frequency <em>θ</em><sub>i</sub> = <em>b</em><sup>−2i/d</sup> (the runtime model uses base <em>b</em> = 10⁶), a key compiled assuming anchor position <em>m</em>₀ but consumed at position <em>n</em><sub>past</sub> accrues a phase error</p>
+<blockquote>
+<p>Δ<em>θ</em><sub>i</sub> = (<em>n</em><sub>past</sub> − <em>m</em>₀) · <em>θ</em><sub>i</sub></p>
+</blockquote>
+<p>Because attention scores depend on the <strong>relative</strong> rotation between query and key, a transplanted block whose keys carry the wrong absolute phase is read off-axis by every subsequent query. The error grows with the placement offset and is non-uniform across dimensions (high-frequency pairs drift fastest), so a pre-compiled schema block is faithful only in a neighborhood of its compile anchor.</p>
+<p>Nexus counteracts the bulk of this error at splice time by <strong>reanchoring</strong>: each transplanted key is re-rotated from its compile anchor <em>m</em>₀ to the runtime position <em>n</em><sub>past</sub> — the exact inverse of the offset above — so subsequent queries read the relocated block on-axis. Reanchoring recovers the <em>relative</em> query–key rotation exactly, but the block’s keys and values were compiled under a different preceding context, so a small residual divergence survives the correction. That residual is what §4 measures, and it is what the depth-adaptive repair drives to zero. This is why an off-anchor splice drifts <em>slightly</em> rather than catastrophically, and why the 256-token boundary is a repair-start rather than a hard failure point.</p>
+<h3 id="31-depth-adaptive-recompute"><a class="heading-anchor" href="#31-depth-adaptive-recompute" aria-hidden="true">#</a> 3.1 Depth-adaptive recompute</h3>
+<p>Rather than treat 256 as a hard wall, Nexus repairs drift by re-decoding the trailing tokens of the spliced schema, with a fraction that grows with depth. Let <em>M</em> = 256 be the splice threshold, <em>R</em><sub>base</sub> = 5% the baseline recompute fraction, and <em>K</em> the multiple of <em>M</em> at which recompute reaches 100%. The effective fraction is <em>R</em>(<em>n</em><sub>past</sub>) = <em>R</em><sub>base</sub> for <em>n</em><sub>past</sub> ≤ <em>M</em>, and</p>
+<blockquote>
+<p><em>R</em>(<em>n</em><sub>past</sub>) = <em>R</em><sub>base</sub> + (<em>n</em><sub>past</sub> − <em>M</em>) / (<em>M</em>(<em>K</em> − 1)) · (100 − <em>R</em><sub>base</sub>), for <em>n</em><sub>past</sub> &gt; <em>M</em></p>
+</blockquote>
+<p>clamped to 100%. At deep positions the fraction approaches 100%, which is numerically a full text prefill (<em>D</em><sub>KL</sub> = 0); <em>K</em> is the knob that trades TTFT flatness for how early full recompute engages.</p>
+<h2 id="4-physical-limitations-and-negative-results"><a class="heading-anchor" href="#4-physical-limitations-and-negative-results" aria-hidden="true">#</a> 4. Physical Limitations and Negative Results</h2>
+<p>We present the negative results first because they motivate the architecture: they fix the shape of the repair curve and force routing to be depth-independent rather than to depend on a deep splice.</p>
+<h3 id="41-the-anchored-off-anchor-fidelity-boundary"><a class="heading-anchor" href="#41-the-anchored-off-anchor-fidelity-boundary" aria-hidden="true">#</a> 4.1 The anchored / off-anchor fidelity boundary</h3>
+<p>At the compile anchor (Δpos = 0) an anchored splice is output-exact: <em>D</em><sub>KL</sub> ≈ 0 with top-1 agreement = 1.0. Once the block is placed off-anchor, the phase error perturbs the distribution.</p>
+<p><img src="/cdn-assets/6565ade6-402a-4fee-83bb-da43d4dad477/nexus-fig1-dkl.jpg" alt="Bare-splice next-token divergence versus placement offset with recompute disabled: divergence rises from the anchor floor to about 10⁻² nats within 64 tokens, then plateaus in the 0.008–0.038 nat band out to 2048 tokens, two orders of magnitude below the retired scattered-recompute point at 5.7 nats" class="zoomable" role="button" tabindex="0" aria-label="Zoom Bare-splice next-token divergence versus placement offset with recompute disabled: divergence rises from the anchor floor to about 10⁻² nats within 64 tokens, then plateaus in the 0.008–0.038 nat band out to 2048 tokens, two orders of magnitude below the retired scattered-recompute point at 5.7 nats" title="Click to zoom" loading="lazy" /></p>
+<p>Two facts stand out. First, the RoPE reanchor is effective: the divergence rises from its ≈0 anchor floor to ~10⁻² nats within the first 64 tokens and then <strong>plateaus</strong> — it stays in the 0.008–0.038-nat band, with top-1 agreement = 1.0, across the entire 0–2048 range, so a contiguous-suffix bare splice never fails catastrophically at these depths. The threshold <em>P</em> = 256 is therefore a <strong>conservative</strong> repair-start rather than a sharp fidelity cliff.</p>
+<p>Second, the retired scattered partial-recompute configuration (LegoLink) tells the complementary cautionary story: at <em>n</em><sub>past</sub> = 1024 it left the divergence as high as <em>D</em><sub>KL</sub> ≈ 5.7 nats — two orders of magnitude <em>above</em> the contiguous-suffix bare splice at the same depth. Scattered recompute thus actively corrupted the distribution rather than repairing it, which is why the current design repairs a <strong>contiguous</strong> trailing suffix.</p>
+<p>If the contiguous bare splice already holds top-1 agreement = 1.0 out to Δpos = 2048, why repair at all? Because top-1 agreement is a weaker property than distributional identity. The residual ~10⁻²-nat divergence leaves the tail of the next-token distribution perturbed, so under temperature or nucleus sampling the spliced and prefilled paths can still diverge, and that per-token gap compounds across the many turns of an agentic trajectory. Driving the divergence to <em>exactly</em> 0 makes the spliced output bit-identical to a full prefill — an auditable guarantee that holds under any decoding parameters, which is what “never-regress” certifies.</p>
+<h3 id="42-the-failure-of-reference-free-drift-gating"><a class="heading-anchor" href="#42-the-failure-of-reference-free-drift-gating" aria-hidden="true">#</a> 4.2 The failure of reference-free drift gating</h3>
+<p>A natural optimization for the Path-A (≤ 256) to Path-B (&gt; 256) transition is a cheap, reference-free runtime proxy — per-head preceding-context K-variance — that predicts when a deep splice will drift catastrophically. Profiling this proxy against the true per-head drift on the 14B model rules the approach out.</p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th><em>n</em><sub>past</sub></th>
+<th>ctx</th>
+<th>max drift</th>
+<th>mean drift</th>
+<th>Spearman <em>ρ</em></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>256</td>
+<td>on</td>
+<td>207.1</td>
+<td>105.2</td>
+<td>0.147</td>
+</tr>
+<tr>
+<td>256</td>
+<td>off</td>
+<td>195.3</td>
+<td>97.8</td>
+<td>0.221</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>on</td>
+<td>193.2</td>
+<td>98.4</td>
+<td>0.182</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>off</td>
+<td>189.1</td>
+<td>96.4</td>
+<td>0.250</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>on</td>
+<td>194.7</td>
+<td>97.6</td>
+<td>0.159</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>off</td>
+<td>175.4</td>
+<td>91.0</td>
+<td>0.197</td>
+</tr>
+<tr>
+<td><strong>mean Spearman <em>ρ</em></strong> (target ≥ 0.40)</td>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>0.193</strong></td>
+</tr>
+</tbody>
+</table></div><p>Per-head drift is not itself absent — max drift ranges 175–207 and mean drift 91–105 across depths and both on- and off-topic contexts — but the K-variance proxy fails to rank-correlate with that variation, so a scalar-threshold gate driven by it cannot separate high- from low-drift heads and would fire indiscriminately. An effective online gate would require a true reference (the full prefill cost we seek to avoid) or a custom attention kernel. This justifies keeping the deterministic depth-adaptive curve as the repair mechanism.</p>
+<h2 id="5-architecture-retrieval-decoupled-routing"><a class="heading-anchor" href="#5-architecture-retrieval-decoupled-routing" aria-hidden="true">#</a> 5. Architecture: Retrieval-Decoupled Routing</h2>
+<p>The negative results dictate the architecture: routing must be depth-independent rather than depend on a deep splice. Arguments, in turn, are generated over a compact textual signature rather than over spliced schema KV, which both keeps the main-context prompt small and avoids relying on a splice inside the drift-prone regime.</p>
+<p><img src="/cdn-assets/310581b0-c0c9-4005-b8d5-e3bb3a6fb9e6/nexus-fig2-arch.jpg" alt="Nexus request flow: a user query is embedded with nomic v1.5 INT8, scanned against the semantic lookaside buffer, passed through a margin gate at tau = 0.0136 and an optional cross-encoder rerank that fires on about 20% of decisions, yielding a resolved tool id, a 19-token semantic compressed IR, and FSM-masked JSON argument generation; KV-splice acceleration is a separate upper path where an anchored splice is output-exact below 256 tokens and a depth-adaptive repair escalates beyond it" class="zoomable" role="button" tabindex="0" aria-label="Zoom Nexus request flow: a user query is embedded with nomic v1.5 INT8, scanned against the semantic lookaside buffer, passed through a margin gate at tau = 0.0136 and an optional cross-encoder rerank that fires on about 20% of decisions, yielding a resolved tool id, a 19-token semantic compressed IR, and FSM-masked JSON argument generation; KV-splice acceleration is a separate upper path where an anchored splice is output-exact below 256 tokens and a depth-adaptive repair escalates beyond it" title="Click to zoom" loading="lazy" /></p>
+<h3 id="51-semantic-lookaside-buffer-and-gate"><a class="heading-anchor" href="#51-semantic-lookaside-buffer-and-gate" aria-hidden="true">#</a> 5.1 Semantic lookaside buffer and gate</h3>
+<p>Tool selection runs over a dense SLB: tool embeddings from <code>nomic-embed-text-v1.5</code> are INT8-quantized and scanned with a branchless SIMD dot-product (NEON / AVX-512-VNNI / AVX2). The embedding of a tool concatenates its name and description under the asymmetric <code>search_document:</code> prefix, mirrored by <code>search_query:</code> on the query side; the tool name carries dominant routing signal. The top candidates pass a <strong>margin gate</strong>: if the top-two score margin exceeds a calibrated threshold the decision auto-resolves, otherwise it escalates to a fine-tuned MiniLM-class cross-encoder. The threshold is calibrated to the 20th percentile of adversarial-pair margins (<em>τ</em> = 0.0136), so the cross-encoder fires on the lowest-confidence ~20% of decisions. Retrieval depends only on the query embedding and the registry, never on the deep context, so it is inherently depth-independent.</p>
+<h3 id="52-execution-sidecar-and-compressed-ir"><a class="heading-anchor" href="#52-execution-sidecar-and-compressed-ir" aria-hidden="true">#</a> 5.2 Execution sidecar and compressed IR</h3>
+<p>When a candidate splice is required to validate routing in a fresh sequence, Nexus allocates a temporary <strong>sidecar</strong> sequence beginning at position 0, so the anchored splice is always in the output-exact regime. To preserve multi-turn coreference (e.g. “open a pull request <em>there</em>”), the sidecar carries a pruned sliding window: recent turns are kept verbatim while bulky tool payloads are replaced by short semantic surrogates.</p>
+<p>Given the resolved tool, arguments are generated in the main context over a <strong>semantic compressed intermediate representation</strong>: the JSON schema is reduced to a dense, type-hinted function signature with truncated inline descriptions, e.g. <code>create_repository(name: string, private?: boolean)</code>. At a median of 19 tokens the IR is far smaller than the full schema, so the main-context prefill avoids schema bloat while retaining enough semantics to bind arguments to the correct fields. A finite-state machine masks logits to the tool-name radix trie; JSON arguments are then constrained by a native GBNF grammar compiled from the schema.</p>
+<h2 id="6-systems-implementation"><a class="heading-anchor" href="#6-systems-implementation" aria-hidden="true">#</a> 6. Systems Implementation</h2>
+<h3 id="61-compiled-tool-blocks-and-splice"><a class="heading-anchor" href="#61-compiled-tool-blocks-and-splice" aria-hidden="true">#</a> 6.1 Compiled tool blocks and splice</h3>
+<p>Each schema is compiled offline into an Aeon Tool Block (<code>.atb</code>): a 128-byte header recording the RoPE anchor and scaling parameters, followed by page-aligned (2 MB) contiguous F16 key and value tensors. The header’s RoPE parameters are validated against the runtime model before any splice, so a block compiled for a different scaling regime is rejected rather than silently corrupting attention. The splice writes K/V rows into the live KV cells at the runtime cursor; a suffix of ⌈<em>S</em> · <em>R</em>(<em>n</em><sub>past</sub>)/100⌉ tokens is then invalidated and re-decoded to stitch the seam.</p>
+<p><img src="/cdn-assets/d4edd04e-40b4-4214-a6e3-1e3144c52aed/nexus-fig3-atb.jpg" alt="Physical splice with memory mapping: the compiled .atb block on disk is mapped zero-copy into host virtual memory, contiguous F16 keys and values are blitted into the live KV cache with a strided copy, and the trailing suffix fraction is re-decoded to stitch the seam" class="zoomable" role="button" tabindex="0" aria-label="Zoom Physical splice with memory mapping: the compiled .atb block on disk is mapped zero-copy into host virtual memory, contiguous F16 keys and values are blitted into the live KV cache with a strided copy, and the trailing suffix fraction is re-decoded to stitch the seam" title="Click to zoom" loading="lazy" /></p>
+<h3 id="62-transposed-v-splicing-for-soft-capped-attention"><a class="heading-anchor" href="#62-transposed-v-splicing-for-soft-capped-attention" aria-hidden="true">#</a> 6.2 Transposed-V splicing for soft-capped attention</h3>
+<p>Attention-logit soft-capping (e.g. <code>Gemma-2</code>) disables FlashAttention, which forces the V cache into a transposed, token-innermost layout. A fixed-stride row-major copy cannot address this layout. Nexus implements a layout-aware routine that performs strided transposed copies directly in the physical cache under unified memory, validates the live V strides before writing, and is fidelity-tested on the soft-capped <code>Gemma-2-9B</code> model.</p>
+<p>On non-UMA / discrete-GPU back-ends, where a transposed strided host-to-device transfer would be pathological, the splicer declines and the system falls back to prefill — a deliberate safety boundary, not a general path. Two cases fall back entirely to text-prefill (Path B, 1.0× speedup): cloud/remote execution, because cache transplantation requires direct copies into local physical cache addresses that a token-stream API does not expose; and discrete-GPU back-ends.</p>
+<h3 id="63-cache-line-hardening-and-concurrency"><a class="heading-anchor" href="#63-cache-line-hardening-and-concurrency" aria-hidden="true">#</a> 6.3 Cache-line hardening and concurrency</h3>
+<p>The Python orchestration layer drives a single native <code>llama_context</code> whose internal decode is guarded by a C++ mutex. Fine-grained Python locking around individual decode steps races that mutex; Nexus instead serializes an entire turn (routing plus argument generation) under one coarse re-entrant context lock, yielding deterministic, bit-stable outputs under concurrency. To remove cross-core false-sharing on the buddy allocator, the allocator is declared <code>alignas(128)</code> and its contended mutex is pinned to its own cache line, enforced at compile time with a <code>static_assert</code>. We report this as implemented hardening with a passing four-thread determinism test; we do not claim a throughput speedup, having measured none in isolation.</p>
+<h3 id="64-l0-exact-token-radix-arena"><a class="heading-anchor" href="#64-l0-exact-token-radix-arena" aria-hidden="true">#</a> 6.4 L0 exact-token radix arena</h3>
+<p>A zero-allocation radix cache manages a fixed pool of 32 sequence slots and reuses warm prefixes by exact-token longest-common-prefix matching, copying KV within a pre-reserved arena rather than allocating on the hot path.</p>
+<h2 id="7-evaluation"><a class="heading-anchor" href="#7-evaluation" aria-hidden="true">#</a> 7. Evaluation</h2>
+<p>All benchmarks were executed on an Apple M4 Max SoC (16-core CPU, 40-core GPU, 16-core Neural Engine) with 64 GB unified memory and a 1 TB NVMe SSD, running macOS/Darwin 25.5.0 (arm64). All measurements use <code>Qwen2.5-14B-Instruct Q4_K_M</code> with <code>nomic-embed-text-v1.5</code>. Sample sizes are stated per result; they are small, and we treat the numbers as an envelope rather than a population estimate. Every headline proportion carries a Wilson 95% interval and every TTFT median a bootstrap 95% interval.</p>
+<h3 id="71-depth-adaptive-splice-ttft-and-never-regress"><a class="heading-anchor" href="#71-depth-adaptive-splice-ttft-and-never-regress" aria-hidden="true">#</a> 7.1 Depth-adaptive splice: TTFT and never-regress</h3>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th><em>n</em><sub>past</sub></th>
+<th><em>R</em> (%)</th>
+<th>prefill (ms)</th>
+<th>splice (ms)</th>
+<th>speedup [95% CI]</th>
+<th>top-1 / <em>D</em><sub>KL</sub></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Default curve <em>K</em> = 4</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>256</td>
+<td>5.0</td>
+<td>3278</td>
+<td>2010</td>
+<td>1.63 [1.62, 1.67]</td>
+<td>OK / ≈ 0</td>
+</tr>
+<tr>
+<td>512</td>
+<td>36.7</td>
+<td>4672</td>
+<td>3761</td>
+<td>1.24 [1.23, 1.25]</td>
+<td>OK / ≈ 0</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>100.0</td>
+<td>7302</td>
+<td>7425</td>
+<td>0.98 [0.98, 1.00]</td>
+<td>OK / 0</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>100.0</td>
+<td>13092</td>
+<td>13142</td>
+<td>1.00 [0.99, 1.00]</td>
+<td>OK / 0</td>
+</tr>
+<tr>
+<td><strong>Tuned curve <em>K</em> = 16</strong></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>256</td>
+<td>5.0</td>
+<td>3327</td>
+<td>1924</td>
+<td>1.73 [1.72, 1.75]</td>
+<td>OK / ≈ 0</td>
+</tr>
+<tr>
+<td>512</td>
+<td>11.3</td>
+<td>4747</td>
+<td>3336</td>
+<td>1.42 [1.42, 1.43]</td>
+<td>OK / ≈ 0</td>
+</tr>
+<tr>
+<td>1024</td>
+<td>24.0</td>
+<td>7625</td>
+<td>6532</td>
+<td>1.17 [1.14, 1.19]</td>
+<td>OK / ≈ 0</td>
+</tr>
+<tr>
+<td>2048</td>
+<td>49.3</td>
+<td>13468</td>
+<td>12620</td>
+<td>1.07 [1.01, 1.08]</td>
+<td>OK / ≈ 0</td>
+</tr>
+</tbody>
+</table></div><p>Two facts hold across every cell: top-1 next-token agreement is preserved and <em>D</em><sub>KL</sub> ≈ 0 — the never-regress guarantee. We stress that never-regress is a guarantee on output <strong>fidelity</strong>, not on latency: because the repaired suffix adds redecode work, TTFT can dip slightly below parity (0.98× at <em>n</em><sub>past</sub> = 1024, <em>K</em> = 4) before converging to 1.0×. The speedup is not flat: at moderate depth the splice saves 1.1–1.7×, and as <em>R</em>(<em>n</em><sub>past</sub>) escalates toward 100% the repaired splice converges to prefill parity. Flat TTFT and never-regress are in genuine tension, and <em>K</em> is the dial between them.</p>
+<p><img src="/cdn-assets/b048ccf9-5730-4277-b826-6d8f98d819b1/nexus-fig4-ttft.jpg" alt="TTFT speedup versus context depth for two recompute curves: K = 4 falls from 1.63× at 256 tokens to parity at 1024, while the tuned K = 16 curve sustains 1.73× down to 1.07× at 2048 tokens, both converging to parity as the recompute fraction reaches 100%" class="zoomable" role="button" tabindex="0" aria-label="Zoom TTFT speedup versus context depth for two recompute curves: K = 4 falls from 1.63× at 256 tokens to parity at 1024, while the tuned K = 16 curve sustains 1.73× down to 1.07× at 2048 tokens, both converging to parity as the recompute fraction reaches 100%" title="Click to zoom" loading="lazy" /></p>
+<h3 id="72-routing-accuracy-and-registry-scale"><a class="heading-anchor" href="#72-routing-accuracy-and-registry-scale" aria-hidden="true">#</a> 7.2 Routing accuracy and registry scale</h3>
+<p>Routing is evaluated over 100 GitHub-MCP queries as the registry scales from <em>N</em> = 10 to <em>N</em> = 250 tools. End-to-end routing accuracy is nearly flat with scale: 92%, 90%, 89%, 89% at <em>N</em> = 10, 50, 100, 250 — a spread that sits within overlapping Wilson 95% intervals. At <em>N</em> = 250 the routing accuracy carries a Wilson 95% interval of [81.4, 93.7] (<em>n</em> = 100), with SLB top-1 recall 74% [64.6, 81.6] and top-3 recall 95% [88.8, 97.8].</p>
+<p><img src="/cdn-assets/0c1ae445-46aa-4456-9fe9-e94f32981793/nexus-fig5-route.jpg" alt="Routing accuracy versus registry size: Nexus stays near 89% from 10 to 250 tools and SLB recall@1 near 75%, while the concatenate-all-schemas oracle is accurate at 10 tools but overflows the context window at 50 tools and above and cannot route at all" class="zoomable" role="button" tabindex="0" aria-label="Zoom Routing accuracy versus registry size: Nexus stays near 89% from 10 to 250 tools and SLB recall@1 near 75%, while the concatenate-all-schemas oracle is accurate at 10 tools but overflows the context window at 50 tools and above and cannot route at all" title="Click to zoom" loading="lazy" /></p>
+<p>The contrast with the concatenate-all-schemas oracle is the point: the oracle reaches 98% at <em>N</em> = 10 but <strong>overflows the context window at <em>N</em> ≥ 50</strong> and cannot answer at all, whereas Nexus keeps the main-context prompt small and continues to route. Because SLB search depends only on the query embedding and the registry, tool count does not inflate TTFT: the in-situ INT8 scan over 250 real tool vectors completes in 17.6 µs (median, including the Python FFI boundary), while the pure C++ SIMD dot-product scan over 250 unit-norm vectors runs in 8.25 µs.</p>
+<h3 id="73-argument-fidelity-and-micro-costs"><a class="heading-anchor" href="#73-argument-fidelity-and-micro-costs" aria-hidden="true">#</a> 7.3 Argument fidelity and micro-costs</h3>
+<p>Over the compressed textual IR (median 19 tokens, p99 32), the sidecar routes correctly on 86.7% (Wilson 95% CI [70.3, 94.7]) of the 30-case consistency set and, on the routed cases, fills 100% (95% CI ≥ 91.2% over 40 specified arguments) of query-specified arguments correctly with a 100% JSON validity rate and no placeholder leakage; end-to-end argument accuracy, which charges routing errors as failures, is 80% (40/50 arguments, [67.0, 88.8]). The hybrid path reaches its first-argument token in 443.8 ms versus 737.3 ms for an oracle that re-prefills the full schema every turn — a 1.66× reduction at an ≈80% main-context token saving.</p>
+<div class="table-wrap"><table class="zoomable" role="button" tabindex="0" aria-label="Zoom table" title="Click to zoom"><thead>
+<tr>
+<th>Quantity</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Routing accuracy, <em>N</em> = 250 (<em>n</em> = 100)</td>
+<td>89% [81.4, 93.7]</td>
+</tr>
+<tr>
+<td>SLB top-1 / top-3 recall, <em>N</em> = 250</td>
+<td>74% / 95%</td>
+</tr>
+<tr>
+<td>SLB search latency, in-situ incl. FFI (<em>N</em> = 250)</td>
+<td>17.6 µs</td>
+</tr>
+<tr>
+<td>SLB search latency, pure C++ SIMD scan</td>
+<td>8.25 µs</td>
+</tr>
+<tr>
+<td>L0 radix copy latency (P50, 10 seeds)</td>
+<td>3.04 µs</td>
+</tr>
+<tr>
+<td>L0 radix warm-hit rate (10 seeds)</td>
+<td>69.5%</td>
+</tr>
+<tr>
+<td>Sidecar routing accuracy (<em>n</em> = 30 cases)</td>
+<td>86.7% [70.3, 94.7]</td>
+</tr>
+<tr>
+<td>Specified-arg accuracy (routed, <em>n</em> = 40 args)</td>
+<td>100% (≥ 91.2)</td>
+</tr>
+<tr>
+<td>End-to-end argument accuracy (<em>n</em> = 50 args)</td>
+<td>80% [67.0, 88.8]</td>
+</tr>
+<tr>
+<td>JSON validity rate (<em>n</em> = 30)</td>
+<td>100% (≥ 88.6)</td>
+</tr>
+<tr>
+<td>IR length, median / p99</td>
+<td>19 / 32 tok</td>
+</tr>
+<tr>
+<td>Cross-encoder gate <em>τ</em> (P20)</td>
+<td>0.0136</td>
+</tr>
+<tr>
+<td>Gate fire rate (at <em>τ</em> = 0.0136)</td>
+<td>20.8%</td>
+</tr>
+<tr>
+<td>Reference-free gate Spearman <em>ρ</em></td>
+<td>0.193</td>
+</tr>
+</tbody>
+</table></div><h3 id="74-discussion"><a class="heading-anchor" href="#74-discussion" aria-hidden="true">#</a> 7.4 Discussion</h3>
+<p>The evaluation supports a bounded thesis. Off-anchor KV splicing is fundamentally limited by RoPE phase drift, but the failure envelope is predictable and can be repaired by a deterministic depth-adaptive recompute that never regresses below a prefill. On this workload that buys a 1.1–1.7× TTFT reduction at moderate depth, decaying to parity at deep context. Routing, argument generation, and coreference are deliberately kept out of the splice path — a design forced by the off-anchor fidelity boundary — and run over retrieval and a compact textual IR at microsecond-scale overhead.</p>
+<h2 id="8-limitations-and-scope"><a class="heading-anchor" href="#8-limitations-and-scope" aria-hidden="true">#</a> 8. Limitations and Scope</h2>
+<ul>
+<li><strong>Single tuple.</strong> All quantitative numbers are from one host (Apple M4 Max, UMA) and one measured model tuple (<code>Qwen2.5-14B-Instruct Q4_K_M</code>) with one embedder and one <code>llama.cpp</code> build; the transposed-V splice mechanism is additionally validated on <code>Gemma-2-9B</code>, but generality beyond these is unproven.</li>
+<li><strong>Small <em>n</em>.</strong> End-to-end arms use <em>n</em> ≤ 30. Accuracy intervals are correspondingly wide and we do not report them as population estimates.</li>
+<li><strong>Deep splice is micro-validated.</strong> The never-regress curve is measured at the fidelity-and-latency level; it is wired into the agent but not exercised as a multi-turn production path.</li>
+<li><strong>Transposed-V is UMA-only.</strong> Soft-capped models splice under unified memory; discrete-GPU back-ends decline by design.</li>
+<li><strong>Retrieval ceiling.</strong> Dense and cross-encoder recall have a workload-dependent ceiling; the gate improves the lowest-confidence decisions but does not remove hard confusions.</li>
+</ul>
+<h2 id="9-conclusion"><a class="heading-anchor" href="#9-conclusion" aria-hidden="true">#</a> 9. Conclusion</h2>
+<p>Nexus reframes tool-schema acceleration from unconditional KV transplantation to retrieval-decoupled routing paired with a depth-adaptive repair of the schema splice. We characterized the RoPE-induced fidelity boundary in output-distribution terms, and established the off-anchor boundary and the reference-free gating failure as well-supported negative results. We design the serving substrate to decouple semantic routing from the attention-level phase drift boundary, executing partial recomputes only where mathematically required to restore output fidelity. On a single-host 14B prototype this delivers a 1.1–1.7× TTFT reduction at moderate depth with high argument validity.</p>
+<p>We view the measured envelope and the negative results as the durable contribution, and we separate what generalizes from what does not: the <strong>qualitative</strong> boundaries — off-anchor relocation drifts, scattered recompute cannot cheaply repair it, and reference-free gating fails to predict it — are properties of RoPE and hold model-agnostically, whereas the <strong>quantitative</strong> envelope (the <em>P</em> = 256 threshold, the recompute-curve constants, and the specific divergence magnitudes) is calibrated to one model tuple and must be re-measured elsewhere.</p>
+]]></content:encoded>
+    </item>
     <item>
       <title>Aeon: High-Performance Neuro-Symbolic Memory Management for Long-Horizon LLM Agents</title>
       <link>https://mustafarslan.me/papers/aeon-neuro-symbolic-memory</link>
