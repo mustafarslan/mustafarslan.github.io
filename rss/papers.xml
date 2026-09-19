@@ -5,7 +5,7 @@
     <link>https://mustafarslan.me</link>
     <description>Academic papers and preprints.</description>
     <language>en</language>
-    <lastBuildDate>Mon, 24 Aug 2026 06:40:38 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 14:31:51 GMT</lastBuildDate>
     <atom:link href="https://mustafarslan.me/rss/papers.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Nexus: Depth-Adaptive KV-Cache Splicing and Retrieval-Decoupled Tool Routing for Agentic LLMs on Unified Memory</title>

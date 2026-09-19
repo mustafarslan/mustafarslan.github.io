@@ -57,6 +57,14 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/blog/specialist-vs-generalist</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/blog/specialist-vs-generalist"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/blog/specialist-vs-generalist?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/blog/specialist-vs-generalist"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/blog/harness-engineering</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/blog/harness-engineering"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/blog/harness-engineering?lang=tr"/>
@@ -97,6 +105,14 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/tags/Careers</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Careers"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Careers?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Careers"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/tags/Context%20Engineering</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Context%20Engineering"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Context%20Engineering?lang=tr"/>
@@ -109,6 +125,14 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Harness%20Engineering"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Harness%20Engineering?lang=tr"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Harness%20Engineering"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Hiring</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Hiring"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Hiring?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Hiring"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
