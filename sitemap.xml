@@ -25,6 +25,14 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/projects</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/cv</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/cv"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/cv?lang=tr"/>
@@ -85,6 +93,46 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/papers/aeon-neuro-symbolic-memory"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/papers/aeon-neuro-symbolic-memory?lang=tr"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/papers/aeon-neuro-symbolic-memory"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/projects/oxn</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/oxn"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/oxn?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/oxn"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/projects/maestro</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/maestro"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/maestro?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/maestro"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/projects/carbon</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/carbon"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/carbon?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/carbon"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/projects/pandoralm</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/pandoralm"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/pandoralm?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/pandoralm"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/projects/neura</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/neura"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/neura?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/neura"/>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

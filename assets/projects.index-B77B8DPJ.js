@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BKllkxft.js";import{u as t}from"./index-tkDmM5vN.js";import{t as n}from"./ProjectListPage-L9UtIfZv.js";var r=e();function i(){let{projects:e}=t.useLoaderData();return(0,r.jsx)(n,{projects:e})}export{i as component};
