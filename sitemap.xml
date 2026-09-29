@@ -97,6 +97,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/projects/fidus</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/fidus"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/fidus?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/fidus"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/projects/oxn</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/oxn"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/oxn?lang=tr"/>
@@ -113,18 +121,10 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mustafarslan.me/projects/fidus</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/fidus"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/fidus?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/fidus"/>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mustafarslan.me/projects/carbon</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/carbon"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/carbon?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/carbon"/>
+    <loc>https://mustafarslan.me/projects/neura</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/neura"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/neura?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/neura"/>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -137,10 +137,10 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mustafarslan.me/projects/neura</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/neura"/>
-    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/neura?lang=tr"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/neura"/>
+    <loc>https://mustafarslan.me/projects/carbon</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/carbon"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/carbon?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/carbon"/>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
