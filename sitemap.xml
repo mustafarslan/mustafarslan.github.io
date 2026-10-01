@@ -81,6 +81,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/papers/janus-evidence-before-effect</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/papers/janus-evidence-before-effect"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/papers/janus-evidence-before-effect?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/papers/janus-evidence-before-effect"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/papers/nexus-kv-cache-splicing</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/papers/nexus-kv-cache-splicing"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/papers/nexus-kv-cache-splicing?lang=tr"/>
@@ -153,10 +161,26 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/tags/Agent%20Governance</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Agent%20Governance"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Agent%20Governance?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Agent%20Governance"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/tags/Agentic%20AI</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Agentic%20AI"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Agentic%20AI?lang=tr"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Agentic%20AI"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Auditability</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Auditability"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Auditability?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Auditability"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
@@ -205,6 +229,14 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/KV%20Cache"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/KV%20Cache?lang=tr"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/KV%20Cache"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://mustafarslan.me/tags/Provenance</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/tags/Provenance"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/tags/Provenance?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/tags/Provenance"/>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
