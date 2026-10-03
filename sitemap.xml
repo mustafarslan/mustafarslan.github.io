@@ -121,6 +121,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mustafarslan.me/projects/skills</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/skills"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/skills?lang=tr"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://mustafarslan.me/projects/skills"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mustafarslan.me/projects/maestro</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://mustafarslan.me/projects/maestro"/>
     <xhtml:link rel="alternate" hreflang="tr" href="https://mustafarslan.me/projects/maestro?lang=tr"/>
